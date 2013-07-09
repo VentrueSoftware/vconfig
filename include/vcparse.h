@@ -68,7 +68,6 @@
     XX(INVALID)      /* Invalid token   */      \
     XX(NEWLINE)      /* New Line (\n)   */      \
     XX(SEMICOLON)    /* Semicolon (;)   */      \
-    XX(SLASH)        /* Slash (/)       */      \
     XX(LBRACKET)     /* L. Bracket ([)  */      \
     XX(RBRACKET)     /* R. Bracket (])  */      \
     XX(COMMENT)      /* Comment         */      \
@@ -78,6 +77,7 @@
     XX(ASSIGN)       /* Assignment (=)  */      \
     XX(BOOLEAN)      /* Boolean Value   */      \
     XX(INTEGER)      /* Numerical Value */      \
+    XX(FLOAT)        /* Floating Point  */      \
     XX(STRING)       /* String Value    */      
 
 typedef enum {

@@ -176,6 +176,9 @@ int main(int argc, char **argv) {
                     case VC_OPT_INTEGER:
                         printf("%s = %d\n", argv[i], *((int *)opt->value));
                     break;
+                    case VC_OPT_FLOAT:
+                        printf("%s = %lf\n", argv[i], *((double *)opt->value));
+                    break;
                     case VC_OPT_STRING:
                         printf("%s = \"%s\"\n", argv[i], (char *)opt->value);
                     break;

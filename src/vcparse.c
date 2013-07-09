@@ -31,14 +31,16 @@
  * section-footer = "[" , { whitespace } , "/" , section-name , { whitespace } , "]" , eol ;
  * section-name = identifier , { whitespace , identifier } ;
  * 
- * identifier = alpha, { alpha | numeric | "-" | "_" } ;
- * value = { string | number | boolean } ;
+ * identifier = alpha, { alpha | numeric | "-" | "_" | "/" | "\" } ;
+ * value = { string | integer | float | boolean } ;
  * 
  * string = sstring | dstring ;
  * sstring = "'" , { any-char - "'" } , "'" ;
  * dstring = '"' , { any-char - '"' } , '"' ;
  * 
- * number = [ "-" ] , { numeric } ;
+ * integer = [ "-" ] , numeric, { numeric } ;
+ * 
+ * float = [ "-" ] , { numeric } , "." , { numeric } ;
  * 
  * boolean = true | false ;
  * 
@@ -101,7 +103,7 @@ static const char *vc_token_str[] = {
     #undef XX
 };
 
-#define DEF_PARSE_RULE(rule) int vc_parse_##rule(vc_parser *parser)
+#define DEF_PARSE_RULE(rule) static int vc_parse_##rule(vc_parser *parser)
 #define PARSE(rule) if (!vc_parse_##rule(parser)) {\
     printf("Parse failure in rule: '%s'\n", #rule);\
     goto err;\
@@ -113,20 +115,19 @@ static const char *vc_token_str[] = {
 /**********************************************************************/
 
 /* Initializes the parser */
-void vc_parser_init(vc_parser *parser, char *data);
+static void vc_parser_init(vc_parser *parser, char *data);
 
 /* Obtain the next token from the parser */
-int vc_parser_get_token(vc_parser *parser);
-
-/* Old method */
-int vc_get_token(char **ptr, vc_token *token);
+static int vc_parser_get_token(vc_parser *parser);
 
 /* Character validators */
-unsigned char is_boolean(char *str, size_t length, int *boolval);
-inline unsigned char is_identifier_char(char c);
-inline unsigned char is_alpha_char(char c);
-inline unsigned char is_digit_char(char c);
+static unsigned char is_boolean(char *str, size_t length, int *boolval);
+static inline unsigned char is_identifier_char(char c);
+static inline unsigned char is_alpha_char(char c);
+static inline unsigned char is_digit_char(char c);
+static inline unsigned char is_id_symbol_char(char c);
 
+/* Parse subrules */
 DEF_PARSE_RULE(assignment);
 DEF_PARSE_RULE(section);
 
@@ -230,6 +231,16 @@ DEF_PARSE_RULE(assignment) {
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_INTEGER, v);
             return 1;
         }
+        else ACCEPT(FLOAT) {
+            char buffer[32];
+            double *v = (double *)malloc(sizeof(double));
+            strncpy(buffer, parser->token.position, parser->token.length);
+            buffer[parser->token.length] = '\0';
+            *v = atof(buffer);
+            printf("Buffer: %s = %lf\n", buffer, *v);
+            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_FLOAT, v);
+            return 1;
+        }
         else ACCEPT(STRING) {
             char *v = (char *)malloc(sizeof(char) * (parser->token.length + 1));
             strncpy(v, parser->token.position, parser->token.length);
@@ -253,14 +264,13 @@ err:
 DEF_PARSE_RULE(section) {
     vc_token tok;
     tok.type = VC_TOKEN_SECT_BEGIN;
-    
-    REQUIRE(vc_parser_get_token(parser));
-    
-    ACCEPT(SLASH) {
+        
+    if(*(parser->ptr) == '/') {
         tok.type = VC_TOKEN_SECT_END;
-        REQUIRE(vc_parser_get_token(parser));
+        (parser->ptr)++;
     }
-    
+
+    REQUIRE(vc_parser_get_token(parser));    
     
     EXPECT(IDENTIFIER) {
         tok.position = parser->token.position;
@@ -301,7 +311,7 @@ err:
 /************ Helper functions ****************************************/
 /**********************************************************************/
 
-void vc_parser_init(vc_parser *parser, char *data) {
+static void vc_parser_init(vc_parser *parser, char *data) {
     parser->ptr = data;     /* Initialize pointer to beginning of data */
     parser->line = 1;       /* Initialize line counter to one */
     parser->depth = 0;      /* Initialize section depth to zero */
@@ -311,7 +321,7 @@ void vc_parser_init(vc_parser *parser, char *data) {
     parser->sects[0].sect = vc_root_sect();
 }
 
-int vc_parser_get_token(vc_parser *parser) {
+static int vc_parser_get_token(vc_parser *parser) {
     vc_token *token;
     #define PPTR (parser->ptr)
     if (!parser || !*PPTR) return 0;
@@ -326,7 +336,7 @@ int vc_parser_get_token(vc_parser *parser) {
         /* Test single-character tokens */
         case SINGLE_CHAR_TOKEN('\n', NEWLINE); parser->line++; break;
         case SINGLE_CHAR_TOKEN(';', SEMICOLON); break;
-        case SINGLE_CHAR_TOKEN('/', SLASH);     break;
+        //case SINGLE_CHAR_TOKEN('/', SLASH);     break;
         case SINGLE_CHAR_TOKEN('[', LBRACKET);  break;
         case SINGLE_CHAR_TOKEN(']', RBRACKET);  break;
         case SINGLE_CHAR_TOKEN('=', ASSIGN);    break;
@@ -349,22 +359,34 @@ int vc_parser_get_token(vc_parser *parser) {
                 PPTR++;
             }
         } break;
-        /* Test for integer type */
-        case '0': case '1': case '2': case '3': case '4': case '5':
-        case '6': case '7': case '8': case '9':
-            token->type = VC_TOKEN_INTEGER;
+        /* Test for floating point with leading decimal. */
+        case '.':
+            token->type = VC_TOKEN_FLOAT;
+            PPTR++;
+        /* Test for integer/floating point type */
+        case '-': case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9': {
+            //int has_decimal = 0;
+            if (token->type != VC_TOKEN_FLOAT) token->type = VC_TOKEN_INTEGER;
+            
             while (*PPTR && *PPTR != ' ' && *PPTR != '\t' && *PPTR != '\n' && *PPTR != '#' && *PPTR != ';') {
-                if ((*PPTR - '0') < 0 || (*PPTR - '0') > 9) {
+                if (*PPTR == '.') {
+                    if (token->type == VC_TOKEN_INTEGER) {
+                        token->type = VC_TOKEN_FLOAT;
+                    } else {
+                        token->type = VC_TOKEN_INVALID;
+                    }
+                } else if ((*PPTR - '0') < 0 || (*PPTR - '0') > 9) {
                     token->type = VC_TOKEN_INVALID;
                 }
                 if (*PPTR) PPTR++;
             }
             token->length = (size_t)(PPTR - token->position);
-        break;
+        } break;
         default: {
             int boolval;    /* if we have a boolean value, 1 = true, 0 = false */
             /* We check for an identifier */
-            if (is_alpha_char(*PPTR)) {
+            if (is_alpha_char(*PPTR) || is_id_symbol_char(*PPTR)) {
                 token->type = VC_TOKEN_IDENTIFIER;
                 (PPTR)++;
             } else {
@@ -400,7 +422,7 @@ int strcincmp(char const *a, char const *b, int n)
     return 0;
 }
 
-unsigned char is_boolean(char *str, size_t length, int *boolval) {
+static unsigned char is_boolean(char *str, size_t length, int *boolval) {
     if (length == 1) {
         if (tolower(*str) == 'f' || tolower(*str) == 'n') {
             *boolval = 0;
@@ -426,20 +448,24 @@ unsigned char is_boolean(char *str, size_t length, int *boolval) {
     return 0;
 }
 
-unsigned char is_identifier_char(char c) {
-    return (is_alpha_char(c) || is_digit_char(c) ||
-            (c == '-') || (c == '_')) ?
+static unsigned char is_identifier_char(char c) {
+    return (is_alpha_char(c) || is_digit_char(c) || is_id_symbol_char(c)) ?
             1 : 0;
 }
 
-inline unsigned char is_alpha_char(char c) {
+static inline unsigned char is_alpha_char(char c) {
     return ((c - 'A' >= 0 && c - 'A' <= 'Z' - 'A') ||
             (c - 'a' >= 0 && c - 'a' <= 'z' - 'a')) ?
             1 : 0;
 }
 
-inline unsigned char is_digit_char(char c) {
+static inline unsigned char is_digit_char(char c) {
     return (c - '0' >= 0 && c - '0' <= 9) ? 
+            1 : 0;
+}
+
+static inline unsigned char is_id_symbol_char(char c) {
+    return ((c == '-') || (c == '_') || (c == '/') || (c == '\\')) ?
             1 : 0;
 }
 

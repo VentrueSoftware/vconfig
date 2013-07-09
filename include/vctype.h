@@ -24,6 +24,7 @@
     XX(ERROR)                       \
     XX(BOOLEAN)                     \
     XX(INTEGER)                     \
+    XX(FLOAT)                       \
     XX(STRING)                      \
     XX(SECTION)
 
