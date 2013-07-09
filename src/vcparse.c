@@ -70,7 +70,6 @@
 
 
 
-#define GET_TOKEN() vc_get_token(&ptr, &token);
 #define SKIP_WHITESPACE(ptr)                        \
     while (*(ptr) == ' ' || *(ptr) == '\t') (ptr)++;
 
@@ -176,19 +175,34 @@ err:
 
 vc_sect *vc_parse_stream(char *buffer, vc_parser *parser) {
     parser->ptr = buffer;
+    
+    /* Loop until we have no more tokens to parse, which indicates EOF */
     while (vc_parser_get_token(parser)) {
+        
+        /* If it's an invalid token, throw an error. */
         ACCEPT(INVALID) {
             VC_THROW_ERROR(INVALID_TOKEN, parser, parser->token.length, parser->token.position);
         }
+        
+        /* LBRACKET ([) at this point indicates that a section start/end
+         * will be coming up. */
         else ACCEPT(LBRACKET) {
             PARSE(section);
         } 
+        
+        /* If an identifier is parsed, then we assume assignment.  In
+         * the future, we will need to check directives before assuming
+         * assignment is taking place. */
         else ACCEPT(IDENTIFIER) {
             PARSE(assignment);
         } 
+        
+        /* Whitespace stuff */
         else ACCEPT(NEWLINE); 
         else ACCEPT(COMMENT);
         else ACCEPT(SEMICOLON);
+        
+        /* Unexpected token type */
         else {
             VC_THROW_ERROR(UNEXPECTED, parser, 
                 vc_token_str[parser->token.type], parser->token.length, 
@@ -197,13 +211,17 @@ vc_sect *vc_parse_stream(char *buffer, vc_parser *parser) {
         }
     }
     
-    if (parser->depth != 0) {
+    /* By the end of the file, we should be back at depth zero.  If not,
+     * then some sections were not closed before the file ended. */
+    if (parser->depth) {
         VC_THROW_ERROR(NONZERO_DEPTH, parser, parser->depth);
     }
     
+    /* Return the root section */
     return parser->sects[0].sect;
 
 err:
+    /* Clean up the section(s) created */
     vc_sect_destroy(parser->sects[0].sect);
     return 0;
 }
@@ -217,24 +235,28 @@ err:
 /************ Parse Subrules ******************************************/
 /**********************************************************************/
 DEF_PARSE_RULE(assignment) {
+    /* Save the optname and optlength */
     char *optname = parser->token.position;
     size_t optlength = parser->token.length;
     
+    /* Get the next token and expect it is an assignment token */
     REQUIRE(vc_parser_get_token(parser));
-    
+
     EXPECT(ASSIGN) {
         REQUIRE(vc_parser_get_token(parser));
-        
+
+        /* Handle an integer, by copying into a buffer and invoking atoi() */
         ACCEPT(INTEGER) {
             char buffer[32];
             int *v = (int *)malloc(sizeof(int));
             strncpy(buffer, parser->token.position, parser->token.length);
             buffer[parser->token.length] = '\0';
             *v = atoi(buffer);
-            
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_INTEGER, v);
             return 1;
         }
+        
+        /* Handle a float, by copying into a buffer and invoking atof() */
         else ACCEPT(FLOAT) {
             char buffer[32];
             double *v = (double *)malloc(sizeof(double));
@@ -244,20 +266,25 @@ DEF_PARSE_RULE(assignment) {
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_FLOAT, v);
             return 1;
         }
+        
+        /* Accept a string by essentially strduping */
         else ACCEPT(STRING) {
             char *v = (char *)malloc(sizeof(char) * (parser->token.length + 1));
             strncpy(v, parser->token.position, parser->token.length);
             v[parser->token.length] = '\0';
-            
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_STRING, v);
             return 1;
         }
+        
+        /* Handle a boolean as an integer (1 or 0) */
         else ACCEPT(BOOLEAN) {
             int *v = (int *)malloc(sizeof(int));
             *v = parser->token.length;
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_BOOLEAN, v);
             return 1;
         } 
+        
+        /* Else, we got something invalid.  Error. */
         else VC_THROW_ERROR(UNEXPECTED, parser, vc_token_str[parser->token.type], parser->token.length, parser->token.position);
     }
 err:
@@ -267,21 +294,27 @@ err:
 DEF_PARSE_RULE(section) {
     vc_token tok;
     tok.type = VC_TOKEN_SECT_BEGIN;
-        
+    
+    /* Check for section end, which starts with a '/' */
     if(*(parser->ptr) == '/') {
         tok.type = VC_TOKEN_SECT_END;
         (parser->ptr)++;
     }
-
+    
+    /* Get the identifier, which will be the section name */
     REQUIRE(vc_parser_get_token(parser));    
     
     EXPECT(IDENTIFIER) {
         tok.position = parser->token.position;
         tok.length = parser->token.length;
-        REQUIRE(vc_parser_get_token(parser));
         
+        /* Expect a RBRACKET (]) for closing the section */
+        REQUIRE(vc_parser_get_token(parser));        
         EXPECT(RBRACKET) {
+            
+            /* If we're starting a new section, allocate a new vc_sect */
             if (tok.type == VC_TOKEN_SECT_BEGIN) {
+                /* Don't allow depth overflow */
                 if (parser->depth == MAX_DEPTH) VC_THROW_ERROR(DEPTH_OVERFLOW, parser, MAX_DEPTH);
                 char *label = strndup(tok.position, tok.length + 1);
                 vc_opt *newsect_opt;
@@ -293,6 +326,8 @@ DEF_PARSE_RULE(section) {
                 parser->sects[parser->depth].sect = (vc_sect *)newsect_opt->value;
                 free(label);
             } else {
+                /* Otherwise, verify we're closing the most recently-opened section.
+                 * Don't allow depth underflow */
                 if (parser->depth == 0) VC_THROW_ERROR(DEPTH_UNDERFLOW, parser);
                 if (strncmp(tok.position, parser->sects[parser->depth].position, tok.length)) {
                     VC_THROW_ERROR(SECT_MISMATCH, parser,
@@ -339,7 +374,6 @@ static int vc_parser_get_token(vc_parser *parser) {
         /* Test single-character tokens */
         case SINGLE_CHAR_TOKEN('\n', NEWLINE); parser->line++; break;
         case SINGLE_CHAR_TOKEN(';', SEMICOLON); break;
-        //case SINGLE_CHAR_TOKEN('/', SLASH);     break;
         case SINGLE_CHAR_TOKEN('[', LBRACKET);  break;
         case SINGLE_CHAR_TOKEN(']', RBRACKET);  break;
         case SINGLE_CHAR_TOKEN('=', ASSIGN);    break;

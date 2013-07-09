@@ -58,11 +58,7 @@ fasthash_table *fasthash_init(uint32_t size, uint32_t opts, fasthash_destructor 
     bzero(fh_table->entries, sizeof(fasthash_node *) * size);
     
     return fh_table;
-    
-/* Not needed yet
-err2:
-    free(fh_table->entries); */
-    
+
 err1:
     free(fh_table);
     return 0;
