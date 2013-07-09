@@ -5,16 +5,6 @@ Summary
 -------
 vconfig is a simple configuration reader/parser library, written in C.  It uses hash tables keyed on the option name for attribute lookup.  It parses and converts types for values in the configuration file.
 
-
-
-To do
------
- * Hash table resizing.
- * Support multi-line strings.
- * Support float values.
- * Support array types.
- * Support directives.
-
 Config File Format
 ------------------
     globalOptionA = valueA
@@ -41,12 +31,12 @@ Config File Format
 Vconfig is not whitespace sensitive.  It is line-sensitive; if you
 want multiple options on the same line, separate them with semicolons.
 
-Section can contain anything except '.', '[', and ']', and can be nested.
-Option names should not contain ' ', '.', '[', and ']'.  Option values
-are parsed as the following:
+Section names and option names can include alphanumeric characters, along with '_', '-', '/', and '\'.
+Option values are parsed as the following:
 
  * String: Anything in quotes
  * Integer: Any numerical string.
+ * Float: Any numerical string containing '.'. A decimal point can be the last character (e.g: '42.' = 42.0) or the only character (e.g: '.' = 0.0)
  * Boolean: Any case of true/false.  Evaluates to a char with
                 value 1 if true, 0 if false.
 
@@ -67,7 +57,16 @@ vc_opt *val = vconfig_getopt(section, "option");
 ```
 (vconfig_getval does not return the containing class, getopt does.)
 
-See vconfig.h for a list of all vconfig_get functions.
+See vconfig.h for a list of all vconfig_get* functions.
 
 The latter method is better if you'll be referencing the same section
 multiple times in an area.
+
+To do
+-----
+ * Implement automatic hash table resizing.
+ * Support multi-line strings.
+ * Support arrays.
+ * Support directives.
+ * Support config merging.
+ * Support config exporting.

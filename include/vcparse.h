@@ -31,14 +31,16 @@
  * section-footer = "[" , { whitespace } , "/" , section-name , { whitespace } , "]" , eol ;
  * section-name = identifier , { whitespace , identifier } ;
  * 
- * identifier = alpha, { alpha | numeric | "-" | "_" } ;
- * value = { string | number | boolean } ;
+ * identifier = alpha, { alpha | numeric | "-" | "_" | "/" | "\" } ;
+ * value = { string | integer | float | boolean } ;
  * 
  * string = sstring | dstring ;
  * sstring = "'" , { any-char - "'" } , "'" ;
  * dstring = '"' , { any-char - '"' } , '"' ;
  * 
- * number = [ "-" ] , { numeric } ;
+ * integer = [ "-" ] , numeric, { numeric } ;
+ * 
+ * float = [ "-" ] , { numeric } , "." , { numeric } ;
  * 
  * boolean = true | false ;
  * 
