@@ -69,8 +69,8 @@ can access nested values as follows:
 ```
 Or:
 ```C
-vconfig *section = vconfig_getval(vcfg, "section");
-vc_opt *val = vconfig_getopt(section, "option");
+    vconfig *section = vconfig_getval(vcfg, "section");
+    vc_opt *val = vconfig_getopt(section, "option");
 ```
 (vconfig_getval does not return the containing class, getopt does.)
 
@@ -140,7 +140,7 @@ To do
 -----
  * Implement automatic hash table resizing.
  * Support multi-line strings.
- * Support arrays.
+ * Support a list type.
  * Support directives.
  * Support config merging.
  * Support config exporting.
