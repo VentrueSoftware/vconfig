@@ -65,6 +65,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 
 #============ Cleanup Targets ============#
+clobber: 
+	@echo "===============[ Clobbering $(MODULE_NAME) ]==============="
+	$(V)rm -Rf $(DIST_DIR) $(OBJ_DIR)
+	
 clean: clean-intro module-clean
 	@echo -e "\t* Cleaning up executable"
 	$(V)rm -f $(DIST_DIR)/$(MODULE_NAME)
@@ -89,6 +93,8 @@ clean-intro:
 
 build-intro:
 	@echo "================[ Building $(MODULE_NAME) ]================="
+	@mkdir -p ${OBJ_DIR}
+	@mkdir -p ${DIST_DIR}
 	
 objs-intro:
 	@echo -e "\t* (Re)building object files"

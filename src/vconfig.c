@@ -163,7 +163,6 @@ int main(int argc, char **argv) {
     if (!conf) printf("Unable to load config file.\n");
     else {
         vc_opt *opt;
-        char *stropt;
         printf("Config file loaded.\n");
         for (i = 2; i < argc; i++) {
             opt = vconfig_getopt(conf, argv[i]);
