@@ -37,18 +37,35 @@ Option values are parsed as the following:
  * String: Anything in quotes
  * Integer: Any numerical string.
  * Float: Any numerical string containing '.'. A decimal point can be the last character (e.g: '42.' = 42.0) or the only character (e.g: '.' = 0.0)
- * Boolean: Any case of true/false.  Evaluates to a char with
-                value 1 if true, 0 if false.
+ * Boolean: Any case of true/false or yes/no.  Evaluates to an integer with value 1 if true/yes, 0 if false/no.
 
 
 Library Usage
 -------------
+### Opening/Closing Config Files
+Opening a configuration file is as easy as:
+
+```C
+    char *file = "example.cfg";
+    vconfig *vcfg = vconfig_open(file);
+    
+    /* Failure */
+    if (!vcfg) {
+        printf("Error opening configuration file.\n");
+    }
+    
+    /* Otherwise, we were successful.  Do things here */
+    ...
+    /* Close the config file - frees all the hash tables and option values. */
+    vconfig_close(vcfg);
+```
+### Accessing values.
 Accessing values is done by passing a string to vc_getopt, and
 can access nested values by can be done as follows (assuming vcfg is
 the name of your reference to a vc_conf instance):
 
 ```C
-    vc_opt *val = vc_getopt(vcfg, "section.option");
+    vc_opt *val = vconfig_getopt(vcfg, "section.option");
 ```
 Or:
 ```C
