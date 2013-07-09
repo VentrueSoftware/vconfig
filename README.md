@@ -9,11 +9,11 @@ vconfig is a simple configuration reader/parser library, written in C.  It uses 
 
 To do
 -----
-     - Hash table resizing.
-     - Support multi-line strings.
-     - Support float values.
-     - Support array types.
-     - Support directives
+ * Hash table resizing.
+ * Support multi-line strings.
+ * Support float values.
+ * Support array types.
+ * Support directives.
 
 Config File Format
 ------------------
@@ -64,7 +64,7 @@ Or:
 ```C
 vconfig *section = vconfig_getval(vcfg, "section");
 vc_opt *val = vconfig_getopt(section, "option");
-```C
+```
 (vconfig_getval does not return the containing class, getopt does.)
 
 See vconfig.h for a list of all vconfig_get functions.
