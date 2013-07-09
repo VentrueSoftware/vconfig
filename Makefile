@@ -23,10 +23,17 @@ OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.c=.o))
 
 #Compiler options
 CC = gcc
-CFLAGS = -Wall -Wextra -g
+CFLAGS = -Wall -Wextra -Wno-unused-result
 INCLUDES = -I$(INC_DIR)
 LIBS = 
 DEFS =
+
+#if DEBUG=true, compile with -g, otherwise compile with -Os
+ifeq ($(DEBUG), true)
+CFLAGS += -g
+else
+CFLAGS += -Os
+endif
 
 #Allow verbose builds (See all lines of the build process)
 ifeq ($(VERBOSE), true)
