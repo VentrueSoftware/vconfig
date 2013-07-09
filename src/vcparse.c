@@ -105,7 +105,7 @@ static const char *vc_token_str[] = {
 
 #define DEF_PARSE_RULE(rule) static int vc_parse_##rule(vc_parser *parser)
 #define PARSE(rule) if (!vc_parse_##rule(parser)) {\
-    printf("Parse failure in rule: '%s'\n", #rule);\
+    fprintf(stderr, "Parse failure in rule: '%s'\n", #rule);\
     goto err;\
 }
 
@@ -197,6 +197,10 @@ vc_sect *vc_parse_stream(char *buffer, vc_parser *parser) {
         }
     }
     
+    if (parser->depth != 0) {
+        VC_THROW_ERROR(NONZERO_DEPTH, parser, parser->depth);
+    }
+    
     return parser->sects[0].sect;
 
 err:
@@ -237,7 +241,6 @@ DEF_PARSE_RULE(assignment) {
             strncpy(buffer, parser->token.position, parser->token.length);
             buffer[parser->token.length] = '\0';
             *v = atof(buffer);
-            printf("Buffer: %s = %lf\n", buffer, *v);
             vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_FLOAT, v);
             return 1;
         }
@@ -468,11 +471,3 @@ static inline unsigned char is_id_symbol_char(char c) {
     return ((c == '-') || (c == '_') || (c == '/') || (c == '\\')) ?
             1 : 0;
 }
-
-#ifdef STANDALONE_VCPARSE
-
-int main(int argc, char **argv) {
-    return 0;
-}
-
-#endif /* #ifdef STANDALONE */

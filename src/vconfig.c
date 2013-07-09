@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
     int i;
     
     if (argc < 2) {
-        printf("Usage: %s <filename>\n", argv[0]);
+        printf("Usage: %s <filename> [<optpath1> [<optpath2> ...]]\n", argv[0]);
         return 1;
     }
     

@@ -15,7 +15,12 @@ OBJ_DIR = obj
 DIST_DIR = dist
 
 #Source files.
-SRC_FILES = vconfig.c vcerror.c vcparse.c vctype.c hash.c
+SRC_FILES = hash.c		\
+			vconfig.c 	\
+			vcerror.c 	\
+			vcparse.c 	\
+			vctype.c
+			
 
 #Generate appropriate source and object paths.
 SRC = $(addprefix $(SRC_DIR)/, $(SRC_FILES))
@@ -43,16 +48,16 @@ V=@
 endif
 
 #============ Build Targets ============#
-#Building the executable, typically a test executable.
-build: DEFS=-DSTANDALONE
-build: build-intro module
-	@echo -e "\t* Building executable $(MODULE_NAME)"
-	$(V)$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) $(DEFS) $(DIST_DIR)/$(MODULE_NAME).o -o $(DIST_DIR)/$(MODULE_NAME)
-
 #Building the module, which is just all the source objects linked into one.
 module: build-intro objs-intro $(OBJ)
 	@echo -e "\t* Creating module $(MODULE_NAME).o"
 	$(V)ld -r $(OBJ) -o $(DIST_DIR)/$(MODULE_NAME).o
+
+#Building the executable, typically a test executable.
+standalone: DEFS=-DSTANDALONE
+standalone: build-intro module
+	@echo -e "\t* Building executable $(MODULE_NAME)"
+	$(V)$(CC) $(CFLAGS) $(INCLUDES) $(LIBS) $(DEFS) $(DIST_DIR)/$(MODULE_NAME).o -o $(DIST_DIR)/$(MODULE_NAME)
 
 #Include rule for all object dependency files.
 -include $(OBJ:.o=.d)
@@ -76,11 +81,11 @@ clobber:
 	@echo "===============[ Clobbering $(MODULE_NAME) ]==============="
 	$(V)rm -Rf $(DIST_DIR) $(OBJ_DIR)
 	
-clean: clean-intro module-clean
+clean-standalone: clean-intro module-clean
 	@echo -e "\t* Cleaning up executable"
 	$(V)rm -f $(DIST_DIR)/$(MODULE_NAME)
 
-module-clean: clean-intro obj-clean
+clean: clean-intro obj-clean
 	@echo -e "\t* Cleaning up module"
 	$(V)rm -f $(DIST_DIR)/$(MODULE_NAME).o
 	
@@ -91,7 +96,7 @@ obj-clean: clean-intro
 
 #============ Rebuild Targets ============#
 
-rebuild: clean build
+standalone-rebuild: clean standalone
 
 module-rebuild: module-clean module
 

@@ -55,16 +55,11 @@ void vc_print_error(vc_error_type err, struct vc_parser *parser, ...) {
         sprintf(buffer, "%s\n", error->msg);
     }
 
-    vprintf(buffer, args);
+    vfprintf(stderr, buffer, args);
     va_end(args);
 }
 
 /**********************************************************************/
 /******** Static Function Definitions *********************************/
 /**********************************************************************/
-
-
-#ifdef STANDALONE_VCERROR
-
-
-#endif /* #ifdef STANDALONE */
+/* NONE */

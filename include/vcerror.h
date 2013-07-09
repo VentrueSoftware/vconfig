@@ -38,6 +38,7 @@ struct vc_parser;
     XX(EXPECTED,        O_FILE, 2, "Syntax error: Expected %s instead of %s")                           \
     XX(INVALID_TOKEN,   O_FILE, 1, "Syntax error: Invalid token '%.*s'")                                \
     XX(SECT_MISMATCH,   O_FILE, 4, "Syntax error: Expected end of section for '%.*s', not '%.*s'.")     \
+    XX(NONZERO_DEPTH,   O_FILE, 1, "Syntax error: End of file encountered with %d sections unended.")   \
     XX(DEPTH_UNDERFLOW, O_FILE, 0, "Syntax error: End of section found when already at root section.")  \
     XX(DEPTH_OVERFLOW,  O_FILE, 1, "Syntax error: Exceeded maximum section depth %d. Use fewer subsections.")    
 

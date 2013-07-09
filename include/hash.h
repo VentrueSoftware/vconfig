@@ -6,10 +6,6 @@
  * 
  * Hash table implementation for configuration parser.  This relies 
  * on the excellent hash function djb2 by Dan Bernstein.
- * 
- * For speed, no collisions allowed, and no container for entries, use
- * fasthash_table.  For the aforementioned features, use hash_table
- * (which is not implemented yet). ;)
  */
  
 #ifndef __HASH_H
