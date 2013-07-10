@@ -71,6 +71,7 @@
 /**** Includes ********************************************************/
 /**********************************************************************/
 #include "vconfig.h"
+#include "vcdirect.h"
 
 /**********************************************************************/
 /**** Macro Definitions ***********************************************/
@@ -113,7 +114,7 @@ void *vconfig_getval(vconfig *vcfg, char *opt) {
  * not a boolean, NULL is returned. */
 int *vconfig_getbool(vconfig *vcfg, char *optpath) {
 	vc_opt *opt = vc_getopt(vcfg, optpath);
-	if (opt && opt->type == VC_OPT_BOOLEAN) return (int *)opt->value;
+	if (opt && opt->type == VC_BOOLEAN) return (int *)opt->value;
 	return NULL;
 }
 
@@ -121,7 +122,7 @@ int *vconfig_getbool(vconfig *vcfg, char *optpath) {
  * not an integer, NULL is returned. */
 int *vconfig_getint(vconfig *vcfg, char *optpath) {
 	vc_opt *opt = vc_getopt(vcfg, optpath);
-	if (opt && opt->type == VC_OPT_INTEGER) return (int *)opt->value;
+	if (opt && opt->type == VC_INTEGER) return (int *)opt->value;
 	return NULL;
 }
 
@@ -129,7 +130,7 @@ int *vconfig_getint(vconfig *vcfg, char *optpath) {
  * not an integer, NULL is returned. */
 char *vconfig_getstr(vconfig *vcfg, char *optpath) {
 	vc_opt *opt = vc_getopt(vcfg, optpath);
-	if (opt && opt->type == VC_OPT_STRING) return (char *)opt->value;
+	if (opt && opt->type == VC_STRING) return (char *)opt->value;
 	return NULL;
 }
 
@@ -137,7 +138,7 @@ char *vconfig_getstr(vconfig *vcfg, char *optpath) {
  * value is not an integer, NULL is returned. */
 vconfig *vconfig_getsect(vconfig *vcfg, char *optpath) {
 	vc_opt *opt = vc_getopt(vcfg, optpath);
-	if (opt && opt->type == VC_OPT_SECTION) return (vconfig *)opt->value;
+	if (opt && opt->type == VC_SECTION) return (vconfig *)opt->value;
 	return NULL;
 }
 
@@ -164,25 +165,26 @@ int main(int argc, char **argv) {
     else {
         vc_opt *opt;
         printf("Config file loaded.\n");
+
         for (i = 2; i < argc; i++) {
             opt = vconfig_getopt(conf, argv[i]);
             if (!opt) {
                 printf("%s = <null>\n", argv[i]);
             } else {
                 switch (opt->type) {
-                    case VC_OPT_BOOLEAN:
+                    case VC_BOOLEAN:
                         printf("%s = %s\n", argv[i], *((int *)opt->value) ? "TRUE" : "FALSE");
                     break;
-                    case VC_OPT_INTEGER:
+                    case VC_INTEGER:
                         printf("%s = %d\n", argv[i], *((int *)opt->value));
                     break;
-                    case VC_OPT_FLOAT:
+                    case VC_FLOAT:
                         printf("%s = %lf\n", argv[i], *((double *)opt->value));
                     break;
-                    case VC_OPT_STRING:
+                    case VC_STRING:
                         printf("%s = \"%s\"\n", argv[i], (char *)opt->value);
                     break;
-                    case VC_OPT_SECTION:
+                    case VC_SECTION:
                         printf("%s = <section %p>\n", argv[i], opt->value);
                     break;
                     default:

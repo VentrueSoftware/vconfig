@@ -252,7 +252,7 @@ DEF_PARSE_RULE(assignment) {
             strncpy(buffer, parser->token.position, parser->token.length);
             buffer[parser->token.length] = '\0';
             *v = atoi(buffer);
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_INTEGER, v);
+            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_INTEGER, v);
             return 1;
         }
         
@@ -263,7 +263,7 @@ DEF_PARSE_RULE(assignment) {
             strncpy(buffer, parser->token.position, parser->token.length);
             buffer[parser->token.length] = '\0';
             *v = atof(buffer);
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_FLOAT, v);
+            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_FLOAT, v);
             return 1;
         }
         
@@ -272,7 +272,7 @@ DEF_PARSE_RULE(assignment) {
             char *v = (char *)malloc(sizeof(char) * (parser->token.length + 1));
             strncpy(v, parser->token.position, parser->token.length);
             v[parser->token.length] = '\0';
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_STRING, v);
+            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_STRING, v);
             return 1;
         }
         
@@ -280,7 +280,7 @@ DEF_PARSE_RULE(assignment) {
         else ACCEPT(BOOLEAN) {
             int *v = (int *)malloc(sizeof(int));
             *v = parser->token.length;
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_OPT_BOOLEAN, v);
+            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_BOOLEAN, v);
             return 1;
         } 
         
@@ -319,7 +319,7 @@ DEF_PARSE_RULE(section) {
                 char *label = strndup(tok.position, tok.length + 1);
                 vc_opt *newsect_opt;
                 label[tok.length] = '\0';
-                newsect_opt = vc_addopt(parser->sects[parser->depth].sect, label, VC_OPT_SECTION, 0);
+                newsect_opt = vc_addopt(parser->sects[parser->depth].sect, label, VC_SECTION, 0);
                 parser->depth++;
                 parser->sects[parser->depth].position = tok.position;
                 parser->sects[parser->depth].length = tok.length;

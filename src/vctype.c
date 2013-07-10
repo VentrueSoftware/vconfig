@@ -23,7 +23,7 @@
 /**** Static Function Prototypes **************************************/
 /**********************************************************************/
 /* Create/Destroy VConfig option containers */
-vc_opt *vc_opt_create(vc_opt_type type, void *value);
+vc_opt *vc_opt_create(vc_type type, void *value);
 void vc_opt_destroy(void *opt);
 /**********************************************************************/
 /**** Function Definitions ********************************************/
@@ -37,12 +37,12 @@ vc_sect *vc_root_sect(void) {
     return vc_sect_create();
 }
 
-vc_opt *vc_opt_create(vc_opt_type type, void *value) {
+vc_opt *vc_opt_create(vc_type type, void *value) {
     vc_opt *opt = (vc_opt *)malloc(sizeof(vc_opt));
     if (!opt) return 0;
     
     opt->type = type;
-    if (opt->type == VC_OPT_SECTION) {
+    if (opt->type == VC_SECTION) {
         opt->value = vc_sect_create();
     } else {
         opt->value = value;
@@ -56,14 +56,14 @@ void vc_opt_destroy(void *data) {
     if (!data) return;
     
     switch(opt->type) {
-        case VC_OPT_BOOLEAN:
-        case VC_OPT_INTEGER:
+        case VC_BOOLEAN:
+        case VC_INTEGER:
             free((int *)opt->value);
         break;
-        case VC_OPT_STRING:
+        case VC_STRING:
             free((char *)opt->value);
         break;
-        case VC_OPT_SECTION:
+        case VC_SECTION:
             vc_sect_destroy((vc_sect *)opt->value);
         break;
         default:
@@ -74,7 +74,7 @@ void vc_opt_destroy(void *data) {
 }
 
 /* Add a new VConfig option value within a VConfig section */
-vc_opt *vc_addopt(vc_sect *sect, char *name, vc_opt_type type, void *value) {
+vc_opt *vc_addopt(vc_sect *sect, char *name, vc_type type, void *value) {
     vc_opt *opt = vc_opt_create(type, value);
     if (!opt) return 0;
     
@@ -83,7 +83,7 @@ vc_opt *vc_addopt(vc_sect *sect, char *name, vc_opt_type type, void *value) {
 }
 
 /* Add a new VConfig option value within a VConfig section */
-vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_opt_type type, void *value) {
+vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_type type, void *value) {
     vc_opt *opt = vc_opt_create(type, value);
     if (!opt) return 0;
     
@@ -99,12 +99,15 @@ vc_opt *vc_getopt(vc_sect *sect, char *optpath) {
     
     while (*ptr && *ptr != '.') ptr++;
     node = fasthash_lookupn(sect->ht, optpath, ptr - optpath);
-    if (!node) return NULL;
+    if (!node) return NULL; /* Optpath not found */
     opt = node->data;
     
-    if (*ptr && opt->type != VC_OPT_SECTION) {
+    if (*ptr && opt->type != VC_SECTION) {
+        /* If *ptr != 0 and we aren't at a section, then we don't return
+         * anything as our query won't be matched. */
         return NULL;
-    } else if (*ptr && opt->type == VC_OPT_SECTION) {
+    } else if (*ptr && opt->type == VC_SECTION) {
+        /* Recurse into the next section. */
         return vc_getopt((vc_sect *)opt->value, ptr + 1);
     } else {
         return opt;

@@ -30,16 +30,23 @@
 
 /* VConfig Option Type Enum */
 typedef enum {
-    #define XX(name) VC_OPT_##name,
+    #define XX(name) VC_##name,
     VC_OPT_TYPES(XX)
     #undef XX
-} vc_opt_type;
+} vc_type;
 
 /* Container for VConfig Options */
 typedef struct vc_opt {
-    vc_opt_type type;
+    vc_type type;
     void *value;
 } vc_opt;
+
+/* Container for list-style VConfig options, compatible with vc_opt */
+typedef struct vc_list {
+    vc_type type;
+    void *value;
+    struct vc_list *next;
+} vc_list;
 
 /* VConfig Section type definition */
 typedef struct vc_sect {
@@ -63,8 +70,8 @@ void vc_sect_destroy(vc_sect *sect);
 
 
 /* Add a new VConfig option value within a VConfig section */
-vc_opt *vc_addopt(vc_sect *sect, char *name, vc_opt_type type, void *value);
-vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_opt_type type, void *value);
+vc_opt *vc_addopt(vc_sect *sect, char *name, vc_type type, void *value);
+vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_type type, void *value);
 
 /* Get VConfig option, within the container. */
 vc_opt *vc_getopt(vc_sect *sect, char *optpath);

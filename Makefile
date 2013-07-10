@@ -15,11 +15,12 @@ OBJ_DIR = obj
 DIST_DIR = dist
 
 #Source files.
-SRC_FILES = hash.c		\
-			vconfig.c 	\
-			vcerror.c 	\
-			vcparse.c 	\
-			vctype.c
+SRC_FILES = hash.c      \
+            vcdirect.c  \
+            vconfig.c   \
+            vcerror.c   \
+            vcparse.c   \
+            vctype.c
 			
 
 #Generate appropriate source and object paths.
