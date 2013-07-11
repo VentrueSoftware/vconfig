@@ -112,6 +112,9 @@ typedef struct vc_parser {
     
     /* Section stack - keeps track of which section you're currently in */
     vc_sect_token sects[MAX_DEPTH + 1];
+    
+    /* Directives */
+    vc_directive *directives;
 } vc_parser;
 
 /**********************************************************************/
@@ -122,7 +125,7 @@ typedef struct vc_parser {
 /**********************************************************************/
 /**** Begin Function Prototypes ***************************************/
 /**********************************************************************/
-vc_sect *vc_parse_file(char *filename);
+vc_sect *vc_parse_file(vc_params *params);
 vc_sect *vc_parse_stream(char *buffer, vc_parser *parser);
 
 #endif /* #ifndef __VCPARSE_H */

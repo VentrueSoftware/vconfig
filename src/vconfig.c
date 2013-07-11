@@ -90,8 +90,13 @@
 /******** API Function Definitions ************************************/
 /**********************************************************************/
 /* Open/Close */
-vconfig *vconfig_open(char *file) {
-    return vc_parse_file(file);
+vconfig *vconfig_open(vc_params *params) {
+    return vc_parse_file(params);
+}
+/* Simple open - no directives */
+vconfig *vconfig_open_simple(char *file) {
+    vc_params p = {file, 0};
+    return vc_parse_file(&p);
 }
 
 vconfig *vconfig_close(vconfig *vcfg) {
@@ -150,21 +155,67 @@ vconfig *vconfig_getsect(vconfig *vcfg, char *optpath) {
 
 #include <stdio.h>
 
+
+#define VC_DIRECTIVE(name, flags, format)                               \
+    {#name, flags, format, VC_DIRECTIVE_##name##_fn__}
+
+#define VC_DEF_DIRECTIVE(name)                                          \
+    int VC_DIRECTIVE_##name##_fn__(vc_sect *sect, vc_list *__dir_args)
+
+#define VC_GETARG_INT() *((int *)__dir_args->value); __dir_args = __dir_args->next
+#define VC_GETARG_FLOAT() *((double *)__dir_args->value); __dir_args = __dir_args->next
+#define VC_GETARG_STR() ((char *)__dir_args->value); __dir_args = __dir_args->next
+#define VC_GETARG_BOOL() VC_GETARG_INT()
+
+VC_DEF_DIRECTIVE(addtwo) {
+    /* get args */
+    int a = VC_GETARG_INT();
+    int b = VC_GETARG_INT();
+    printf("addtwo: %d + %d = %d\n", a, b, a + b);
+    return a + b;    
+}
+
+VC_DEF_DIRECTIVE(multwo) {
+    int a = VC_GETARG_INT();
+    int b = VC_GETARG_INT();
+    printf("multwo: %d * %d = %d\n", a, b, a * b);
+    return a * b;
+}
+
+/* Declare directives */
+vc_directive _directives[] = {
+    VC_DIRECTIVE(addtwo, 0, "ii"),
+    VC_DIRECTIVE(multwo, 0, "ii")
+};
+
 int main(int argc, char **argv) {
     vconfig *conf;
-    int i;
+    vc_params p;
+    int i, a = 3, b = 4;
+
+    vc_list testlist1, testlist2;
     
     if (argc < 2) {
         printf("Usage: %s <filename> [<optpath1> [<optpath2> ...]]\n", argv[0]);
         return 1;
     }
     
-    conf = vconfig_open(argv[1]);
+    p.file = argv[1];
+    p.directives = _directives;
+    
+    conf = vconfig_open(&p);
     
     if (!conf) printf("Unable to load config file.\n");
     else {
         vc_opt *opt;
         printf("Config file loaded.\n");
+        
+        testlist1.type = testlist2.type = VC_INTEGER;
+        testlist1.value = &a; testlist2.value = &b;
+        testlist1.next = &testlist2;
+        
+        _directives[0].func(0, &testlist1);
+        _directives[1].func(0, &testlist1);
 
         for (i = 2; i < argc; i++) {
             opt = vconfig_getopt(conf, argv[i]);

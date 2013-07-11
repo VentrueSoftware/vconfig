@@ -73,11 +73,6 @@
 #define SKIP_WHITESPACE(ptr)                        \
     while (*(ptr) == ' ' || *(ptr) == '\t') (ptr)++;
 
-#define VC_THROW_ERROR(type, ctx, ...) {                \
-    vc_print_error(VC_ERROR_##type, ctx, ##__VA_ARGS__);\
-    goto err;                                           \
-}
-
 #define SINGLE_CHAR_TOKEN(c, t)                 \
     c:                                          \
         token->type = VC_TOKEN_##t;             \
@@ -119,6 +114,9 @@ static void vc_parser_init(vc_parser *parser, char *data);
 /* Obtain the next token from the parser */
 static int vc_parser_get_token(vc_parser *parser);
 
+/* Directive handling */
+static vc_directive *is_directive(vc_parser *parser);
+
 /* Character validators */
 static unsigned char is_boolean(char *str, size_t length, int *boolval);
 static inline unsigned char is_identifier_char(char c);
@@ -138,15 +136,15 @@ DEF_PARSE_RULE(section);
 /******** API Function Definitions ************************************/
 /**********************************************************************/
 
-vc_sect *vc_parse_file(char *filename) {
+vc_sect *vc_parse_file(vc_params *params) {
     int fd;
     size_t fsize;
     char *buffer;
     vc_parser parser_inst;
     vc_sect *conf;
     
-    if ((fd = open(filename, O_RDONLY)) < 0) {
-        VC_THROW_ERROR(FILE, 0, filename);
+    if ((fd = open(params->file, O_RDONLY)) < 0) {
+        VC_THROW_ERROR(FILE, 0, params->file);
     }
     
     /* Determine size of file */
@@ -158,7 +156,8 @@ vc_sect *vc_parse_file(char *filename) {
     buffer = (char *)malloc(sizeof(char) * (fsize + 1));
     bzero(buffer, sizeof(char) * (fsize + 1));
     vc_parser_init(&parser_inst, buffer);
-    parser_inst.file = filename;
+    parser_inst.file = params->file;
+    parser_inst.directives = params->directives;
     
     /* Read the file, and parse the contents. */
     read(fd, buffer, fsize);
@@ -194,7 +193,13 @@ vc_sect *vc_parse_stream(char *buffer, vc_parser *parser) {
          * the future, we will need to check directives before assuming
          * assignment is taking place. */
         else ACCEPT(IDENTIFIER) {
-            PARSE(assignment);
+            vc_directive *d = is_directive(parser);
+            if (d) {
+                printf("Directive '%s' encountered.\n", d->name);
+                //handle_directive(d, parser);
+            } else {
+                PARSE(assignment);
+            }
         } 
         
         /* Whitespace stuff */
@@ -245,47 +250,10 @@ DEF_PARSE_RULE(assignment) {
     EXPECT(ASSIGN) {
         REQUIRE(vc_parser_get_token(parser));
 
-        /* Handle an integer, by copying into a buffer and invoking atoi() */
-        ACCEPT(INTEGER) {
-            char buffer[32];
-            int *v = (int *)malloc(sizeof(int));
-            strncpy(buffer, parser->token.position, parser->token.length);
-            buffer[parser->token.length] = '\0';
-            *v = atoi(buffer);
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_INTEGER, v);
-            return 1;
+        if (!vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, &(parser->token))) {
+            VC_THROW_ERROR(UNEXPECTED, parser, vc_token_str[parser->token.type], parser->token.length, parser->token.position);
         }
-        
-        /* Handle a float, by copying into a buffer and invoking atof() */
-        else ACCEPT(FLOAT) {
-            char buffer[32];
-            double *v = (double *)malloc(sizeof(double));
-            strncpy(buffer, parser->token.position, parser->token.length);
-            buffer[parser->token.length] = '\0';
-            *v = atof(buffer);
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_FLOAT, v);
-            return 1;
-        }
-        
-        /* Accept a string by essentially strduping */
-        else ACCEPT(STRING) {
-            char *v = (char *)malloc(sizeof(char) * (parser->token.length + 1));
-            strncpy(v, parser->token.position, parser->token.length);
-            v[parser->token.length] = '\0';
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_STRING, v);
-            return 1;
-        }
-        
-        /* Handle a boolean as an integer (1 or 0) */
-        else ACCEPT(BOOLEAN) {
-            int *v = (int *)malloc(sizeof(int));
-            *v = parser->token.length;
-            vc_addoptn(parser->sects[parser->depth].sect, optname, optlength, VC_BOOLEAN, v);
-            return 1;
-        } 
-        
-        /* Else, we got something invalid.  Error. */
-        else VC_THROW_ERROR(UNEXPECTED, parser, vc_token_str[parser->token.type], parser->token.length, parser->token.position);
+        return 1;
     }
 err:
     return 0;
@@ -319,7 +287,7 @@ DEF_PARSE_RULE(section) {
                 char *label = strndup(tok.position, tok.length + 1);
                 vc_opt *newsect_opt;
                 label[tok.length] = '\0';
-                newsect_opt = vc_addopt(parser->sects[parser->depth].sect, label, VC_SECTION, 0);
+                newsect_opt = vc_addopt(parser->sects[parser->depth].sect, label, &tok);
                 parser->depth++;
                 parser->sects[parser->depth].position = tok.position;
                 parser->sects[parser->depth].length = tok.length;
@@ -483,6 +451,47 @@ static unsigned char is_boolean(char *str, size_t length, int *boolval) {
         return 1;
     }
     return 0;
+}
+
+static vc_directive *is_directive(vc_parser *parser) {
+    vc_directive *dir = parser->directives;
+    if (!dir) return 0;
+    while (dir && dir->name) {
+        if (strlen(dir->name) != parser->token.length || 
+        strncmp(parser->token.position, dir->name, parser->token.length)) {dir++; continue;}
+        return dir;
+    }
+    return 0;
+}
+
+static unsigned char handle_directive(vc_parser *parser, vc_directive *d) {
+    return 0;
+#if 0
+    vc_list *args, *newarg, *argp;
+    char *a = d->format;
+    if (!a) {
+        d->func(parser->sects[parser->depth].sect, args);
+        return 1;
+    }
+    
+    while (*a) {
+        switch (*a) {
+            case 'i':
+                REQUIRE(vc_parser_get_token(parser));
+                EXPECT(INTEGER) {
+                    newarg = malloc(sizeof(vc_list));
+                    
+                }
+            break;
+            default: 
+                printf("Unexpected format value '%c'.\n", *a);
+                goto err;
+        }
+    }
+err:
+    /* Clean up list */
+    return 0;
+#endif
 }
 
 static unsigned char is_identifier_char(char c) {

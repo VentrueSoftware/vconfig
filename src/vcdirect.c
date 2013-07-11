@@ -18,31 +18,3 @@
  */
 
 #include "vcdirect.h"
-
-int vc_directive_add(vc_directives **dirlist, vc_directive *dir) {
-    vc_directives *new;
-    if (!dir || !dirlist) return 0;
-    
-    new = malloc(sizeof(vc_directives));
-    bzero(new, sizeof(vc_directives));
-    
-    new->dir = dir;
-    new->hash = hash_djb2((unsigned char *)dir->name);
-    new->next = *dirlist;
-    
-    *dirlist = new;
-    
-    return 1;
-}
-int vc_directive_cleanup(vc_directives **dirlist) {
-    vc_directives *ptr = *dirlist, *ptr2;
-    if (!dirlist) return 0;
-    
-    while (ptr) {
-        ptr2 = ptr->next;
-        free(ptr);
-        ptr = ptr2;
-    }
-    
-    return 1;
-}

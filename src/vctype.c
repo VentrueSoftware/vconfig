@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "vctype.h"
+#include "vcparse.h"
 
 /**********************************************************************/
 /**** Macro Definitions ***********************************************/
@@ -23,8 +24,6 @@
 /**** Static Function Prototypes **************************************/
 /**********************************************************************/
 /* Create/Destroy VConfig option containers */
-vc_opt *vc_opt_create(vc_type type, void *value);
-void vc_opt_destroy(void *opt);
 /**********************************************************************/
 /**** Function Definitions ********************************************/
 /**********************************************************************/
@@ -37,18 +36,52 @@ vc_sect *vc_root_sect(void) {
     return vc_sect_create();
 }
 
-vc_opt *vc_opt_create(vc_type type, void *value) {
+vc_opt *vc_opt_create(vc_token *token) {
     vc_opt *opt = (vc_opt *)malloc(sizeof(vc_opt));
+    opt->value = 0;
     if (!opt) return 0;
     
-    opt->type = type;
-    if (opt->type == VC_SECTION) {
-        opt->value = vc_sect_create();
-    } else {
-        opt->value = value;
+    switch (token->type) {
+        case VC_TOKEN_SECT_BEGIN:
+            opt->type = VC_SECTION;
+            opt->value = vc_sect_create();
+        break;
+        case VC_TOKEN_BOOLEAN: {
+            int *v = malloc(sizeof(int));
+            *v = token->length;
+            opt->value = v;
+        } break;
+        case VC_TOKEN_INTEGER: case VC_TOKEN_FLOAT: {
+            char str[32];
+            strncpy(str, token->position, token->length);
+            str[token->length] = '\0';
+            if (token->type == VC_TOKEN_FLOAT) {
+                double *v = malloc(sizeof(double));
+                *v = atof(str);
+                opt->type = VC_FLOAT;
+                opt->value = v; 
+            } else {
+                int *v = malloc(sizeof(int));
+                *v = atoi(str);
+                opt->type = VC_INTEGER;
+                opt->value = v;
+            }
+        } break;
+        case VC_TOKEN_STRING: {
+            char *v = (char *)malloc(sizeof(char) * (token->length + 1));
+            strncpy(v, token->position, token->length);
+            v[token->length] = '\0';
+            opt->type = VC_STRING;
+            opt->value = v;
+        } break;
+        default:
+        break;
     }
     
-    return opt;
+    if (opt->value) return opt;
+    
+    free(opt); 
+    return 0;
 }
 
 void vc_opt_destroy(void *data) {
@@ -74,8 +107,8 @@ void vc_opt_destroy(void *data) {
 }
 
 /* Add a new VConfig option value within a VConfig section */
-vc_opt *vc_addopt(vc_sect *sect, char *name, vc_type type, void *value) {
-    vc_opt *opt = vc_opt_create(type, value);
+vc_opt *vc_addopt(vc_sect *sect, char *name, vc_token *token) {
+    vc_opt *opt = vc_opt_create(token);
     if (!opt) return 0;
     
     fasthash_insert(sect->ht, name, opt);
@@ -83,8 +116,9 @@ vc_opt *vc_addopt(vc_sect *sect, char *name, vc_type type, void *value) {
 }
 
 /* Add a new VConfig option value within a VConfig section */
-vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_type type, void *value) {
-    vc_opt *opt = vc_opt_create(type, value);
+vc_opt *vc_addoptn(vc_sect *sect, char *name, size_t length, vc_token *token) {
+    vc_opt *opt = vc_opt_create(token);
+    printf("opt: %p\n", opt);
     if (!opt) return 0;
     
     fasthash_insertn(sect->ht, name, length, opt);

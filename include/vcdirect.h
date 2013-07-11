@@ -22,23 +22,4 @@
 
 #include "vctype.h"
 
-typedef int (*vc_dirfunc)(vc_sect *, vc_list *);
-
-/* Contains the directive name, format string, and handler. */
-typedef struct vc_directive {
-    char *name;         /* Directive name */
-    vc_dirfunc func;    /* function handler */
-    vc_type format[];    /* Format of directive arguments */
-} vc_directive;
-
-/* Linked list container for directives.  This will make changing the
- * data structure of directives easier */
-typedef struct vc_directives {
-    uint32_t hash;              /* Hash value of directive name */
-    vc_directive *dir;          /* Directive */
-    struct vc_directives *next; /* Next directive */
-} vc_directives;
-
-int vc_directive_add(vc_directives **dirlist, vc_directive *dir);
-int vc_directive_cleanup(vc_directives **dirlist);
 #endif /* #ifndef __VCDIRECT_H */

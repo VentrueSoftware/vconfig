@@ -18,14 +18,14 @@
 /**********************************************************************/
 /**** Begin Type Definitions ******************************************/
 /**********************************************************************/
-
-#define O_0ARG 0x01
-#define O_1ARG 0x02
-#define O_2ARG 0x04
-#define O_3ARG 0x08
 #define O_FILE 0x10
 
 #define ARG_MASK 0x0F
+
+#define VC_THROW_ERROR(type, ctx, ...) {                \
+    vc_print_error(VC_ERROR_##type, ctx, ##__VA_ARGS__);\
+    goto err;                                           \
+}
 
 struct vc_parser;
 

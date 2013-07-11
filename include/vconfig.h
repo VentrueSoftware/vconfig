@@ -83,7 +83,8 @@
 /**********************************************************************/
 
 /* Open/Close */
-vconfig *vconfig_open(char *file);
+vconfig *vconfig_open(vc_params *params);
+vconfig *vconfig_open_simple(char *file);
 vconfig *vconfig_close(vconfig *vcfg);
 
 /* Get option. Returns a generic container struct. */
