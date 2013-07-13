@@ -14,11 +14,11 @@
 
 #define DO_TEST(TESTNAME, _TEST_)       \
     printf("Testing %s:\n", TESTNAME);  \
+    _TEST_(VCBOOL)                      \
     _TEST_(VCINT)                       \
     _TEST_(VCFLOAT)                     \
     _TEST_(VCCHAR)                      \
     _TEST_(VCSTR)                       \
-    
 #define TEST_ALLOC(type) {                  \
     VCVAL *val;                             \
     val = new_VCVAL(TYPE_##type, 0);        \

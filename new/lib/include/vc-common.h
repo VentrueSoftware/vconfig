@@ -18,11 +18,15 @@
  * 
  **********************************************************************/
 
-#define TYPE_VCINT 0x01
-#define TYPE_VCFLOAT 0x02
-#define TYPE_VCCHAR 0x04
-#define TYPE_VCSTR  0x08
+enum {
+    TYPE_VCBOOL,
+    TYPE_VCINT,
+    TYPE_VCFLOAT,
+    TYPE_VCCHAR,
+    TYPE_VCSTR
+};
 
+typedef uint8_t     VCBOOL;
 typedef int32_t     VCINT;
 typedef double      VCFLOAT;
 typedef char        VCCHAR;
